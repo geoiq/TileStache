@@ -84,6 +84,7 @@ import urllib2
 from glob import glob
 from time import time
 import sys
+from TileStache.Geography import getProjectionByName
 
 try:
     import mapnik2 as mapnik
@@ -216,6 +217,11 @@ class Mapnik:
         - fonts (optional)
             Local directory path to *.ttf font files.
     
+        - projection (optional)
+            The projection specified for the mapnik map file. In theory, we should be able to set 
+            the layer projection and I would think we would get the correct bounding box, but that 
+            doesn't appear to be the case
+
         More information on Mapnik and Mapnik XML:
         - http://mapnik.org
         - http://trac.mapnik.org/wiki/XMLGettingStarted
@@ -250,23 +256,19 @@ class Mapnik:
             for font in glob(path.rstrip('/') + '/*.ttf'):
                 engine.register_font(str(font))
 
-        self.projection = projection
+        self.projection = Geography.getProjectionByName(projection)
 
     def reproject(self, x, y):
         """ Reproject from Spherical Mercator meters into whatever projection our mapnik file is
-            using - although we currently only support spherical mercator and WGS84
-        """	
-        if self.projection == "spherical mercator":
+            using - although we currently only support spherical mercator and WGS84.
+        """
+	
+        if self.projection.__class__ == self.layer.projection.__class__:
             return (x, y)
 
-        from_projection = Geography.SphericalMercator()
-        if self.projection == "WGS84":
-            to_projection = Geography.WGS84()
-            location = from_projection.projLocation(Point(x, y))
-            point = to_projection.locationProj(location)
-            return (point.x, point.y)
-        else:
-            raise Exception('Unsupported projecition for Modest Maps provider: "%s"' % self.projection)
+        location = self.layer.projection.projLocation(Point(x, y))
+        point = self.projection.locationProj(location)
+        return (point.x, point.y)
         
     def renderArea(self, width, height, srs, xmin, ymin, xmax, ymax, zoom):
         """

@@ -45,7 +45,7 @@ except ImportError:
 
 class Provider:
 
-    def __init__(self, layer, mapfile, fields, layer_index=0, wrapper=None, scale=4, buffer=0):
+    def __init__(self, layer, mapfile, fields, layer_index=0, wrapper=None, scale=4, buffer=0, projection='spherical mercator'):
         """
         """
         self.mapnik = None
@@ -66,7 +66,7 @@ class Provider:
         #De-Unicode the strings or mapnik gets upset
         self.fields = list(str(x) for x in fields)
 
-        self.mercator = getProjectionByName('spherical mercator')
+        self.mercator = getProjectionByName(projection)
 
     def renderTile(self, width, height, srs, coord):
         """
