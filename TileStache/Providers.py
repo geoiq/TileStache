@@ -83,6 +83,7 @@ from urllib import urlopen
 import urllib2
 from glob import glob
 from time import time
+import sys
 
 try:
     import mapnik2 as mapnik
@@ -221,7 +222,7 @@ class Mapnik:
         - http://trac.mapnik.org/wiki/XMLConfigReference
     """
     
-    def __init__(self, layer, mapfile, fonts=None):
+    def __init__(self, layer, mapfile, fonts=None, projection = "spherical mercator"):
         """ Initialize Mapnik provider with layer and mapfile.
             
             XML mapfile keyword arg comes from TileStache config
@@ -249,11 +250,28 @@ class Mapnik:
             for font in glob(path.rstrip('/') + '/*.ttf'):
                 engine.register_font(str(font))
 
+        self.projection = projection
+
+    def reproject(self, x, y):
+        """ Reproject from Spherical Mercator meters into whatever projection our mapnik file is
+            using - although we currently only support spherical mercator and WGS84
+        """	
+        if self.projection == "spherical mercator":
+            return (x, y)
+
+        from_projection = Geography.SphericalMercator()
+        if self.projection == "WGS84":
+            to_projection = Geography.WGS84()
+            location = from_projection.projLocation(Point(x, y))
+            point = to_projection.locationProj(location)
+            return (point.x, point.y)
+        else:
+            raise Exception('Unsupported projecition for Modest Maps provider: "%s"' % self.projection)
+        
     def renderArea(self, width, height, srs, xmin, ymin, xmax, ymax, zoom):
         """
         """
         start_time = time()
-        
         if self.mapnik is None:
             self.mapnik = mapnik.Map(0, 0)
             
@@ -276,6 +294,8 @@ class Mapnik:
         if global_mapnik_lock.acquire():
             self.mapnik.width = width
             self.mapnik.height = height
+            xmin, ymin = self.reproject(xmin, ymin)
+            xmax, ymax = self.reproject(xmax, ymax)
             self.mapnik.zoom_to_box(mapnik.Envelope(xmin, ymin, xmax, ymax))
             
             img = mapnik.Image(width, height)

@@ -330,8 +330,7 @@ def _feature_properties(feature, layer_definition, whitelist=None):
         OFTBinary (8), OFTDate (9), OFTTime (10), OFTDateTime (11).
     """
     properties = {}
-    okay_types = ogr.OFTInteger, ogr.OFTReal, ogr.OFTString, ogr.OFTWideString
-    
+    okay_types = ogr.OFTInteger, ogr.OFTReal, ogr.OFTString, ogr.OFTWideString, ogr.OFTDateTime
     for index in range(layer_definition.GetFieldCount()):
         field_definition = layer_definition.GetFieldDefn(index)
         field_type = field_definition.GetType()
@@ -351,7 +350,6 @@ def _feature_properties(feature, layer_definition, whitelist=None):
         
         property = type(whitelist) is dict and whitelist[name] or name
         properties[property] = feature.GetField(name)
-    
     return properties
 
 def _append_with_delim(s, delim, data, key):
@@ -454,7 +452,7 @@ def _open_layer(driver_name, parameters, dirpath):
     else:
         layer = datasource.GetLayer(0)
 
-    if layer.GetSpatialRef() is None and driver_name != 'SQLite': 
+    if layer.GetSpatialRef() is None and (driver_name != 'SQLite' and driver_name != 'OCI'):
         raise KnownUnknown('Couldn\'t get a layer from data source %s' % source_name)
 
     #
@@ -503,7 +501,6 @@ def _get_features(coord, properties, projection, layer, clipped, projected, spac
         buffer = spacing * _tile_perimeter_width(coord, projection) / 256.
 
     for feature in layer:
-        sys.stderr.write("Considering feature " + _feature_properties(feature, definition, properties)['continent']); sys.stderr.flush();
         geometry = feature.geometry().Clone()
         
         if not geometry.Intersect(bbox):
@@ -518,8 +515,6 @@ def _get_features(coord, properties, projection, layer, clipped, projected, spac
         if geometry is None:
             # may indicate a TopologyException
             continue
-        sys.stderr.write("Feature in bounds " + _feature_properties(feature, definition, properties)['continent']); sys.stderr.flush();
-
         
         # mask out subsequent features if spacing is defined
         if mask and buffer:

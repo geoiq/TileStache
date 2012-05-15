@@ -422,6 +422,7 @@ def _parseConfigfileLayer(layer_dict, config, dirpath):
         if _class is Providers.Mapnik:
             provider_kwargs['mapfile'] = provider_dict['mapfile']
             provider_kwargs['fonts'] = provider_dict.get('fonts', None)
+            provider_kwargs['projection'] = provider_dict.get('projection', None)
         
         elif _class is Providers.Proxy:
             if 'url' in provider_dict:
